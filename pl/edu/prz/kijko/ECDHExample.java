@@ -21,6 +21,12 @@ public class ECDHExample {
         print(new Point(1, 1).equals(new Point(1, 1)));
         print(new Point(1, 2).equals(new Point(1, 1)));
         // ecdhExample();
+        //
+        int x = 1;
+        int y = 2;
+        double z = (double) x / y;
+        int z1 = x % y;
+        print(z1);
     }
 
 
@@ -56,6 +62,10 @@ public class ECDHExample {
         }
 
     }
+// todo ints to longs
+    private static String kdf(int sharedPointX) {
+        return "";
+    }
 
     private static Point multiplyPoint(int multiplier, Point point) {
         if (point.equals(INFINITY)) {
@@ -75,9 +85,75 @@ public class ECDHExample {
         return result;
     }
 
-    private static Point addPoint(Point P, Point Q) {
-// todo
+    private static Point addPoints(Point P, Point Q) {
+        if (P.equals(INFINITY)) {
+            return Q;
+        }
+
+        if (Q.equals(INFINITY)) {
+            return P;
+        }
+
+        // todo domainParams.p
+        int mod = p;
+        if (P.equals(Q)) {
+            // todo domainParams.a
+            int m;
+            int mNumerator = adjustToMod(3 * P.x + a);
+            int mDenominator = adjustToMod(2 * P.y);
+
+            boolean needInverse = (mNumerator % mDenominator) != 0;
+
+            if (needInverse) {
+                int mDenominatorInverse = calcModInverse(mDenominator);
+                m = adjustToMod(mNumerator * mDenominatorInverse);
+            } else {
+                m = adjustToMod(mNumerator / mDenominator);
+            }
+
+            return calcPointsSum(m, P, Q);
+        } else {
+            // punkty na tej samej prostej pionowej
+            if (P.x == Q.x) {
+                return INFINITY;
+            }
+
+            int m;
+            int mNumerator = adjustToMod(Q.y - P.y);
+            int mDenominator = adjustToMod(Q.x - P.x);
+
+            boolean needInverse = (mNumerator % mDenominator) != 0;
+
+            if (needInverse) {
+                int mDenominatorInverse = calcModInverse(mDenominator);
+                m = adjustToMod(mNumerator * mDenominatorInverse);
+            } else {
+                m = adjustToMod(mNumerator / mDenominator);
+            }
+
+            return calcPointsSum(m, P, Q);
+        }
     }
+
+    private static int calcModInverse(int num) {
+// todo
+
+        return 0;
+    }
+
+    private static int adjustToMod(int num) {
+        // todo
+        return 0;
+    }
+
+    private static Point calcPointsSum(int m, Point P, Point Q) {
+            Point R = new Point();
+            R.x = adjustToMod(m^2 - P.x - Q.x);
+            R.y = adjustToMod(m * (P.x - R.x) - P.y);
+
+            return R;
+    }
+
 
     private static int randomInt(int fromInclusive, int toInclusive) {
         return ThreadLocalRandom.current().nextInt(fromInclusive, toInclusive + 1);
