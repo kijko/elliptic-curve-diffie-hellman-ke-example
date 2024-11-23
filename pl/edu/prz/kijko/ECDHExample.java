@@ -1,6 +1,7 @@
 package pl.edu.prz.kijko;
 
-import java.awt.Point;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 // todo komenty na PL
@@ -18,41 +19,101 @@ public class ECDHExample {
 
 
     public static void main(String[] args) {
-        print(new Point(1, 1).equals(new Point(1, 1)));
-        print(new Point(1, 2).equals(new Point(1, 1)));
+//        print(addPoints(new Point(6,11), new Point(10,2)).toString());
+//        print(addPoints(new Point(10,2), new Point(6,11)).toString());
+        //print(addPoints(new Point(6,11), new Point(6,11))); // 0 (1,12)
+//        print(addPoints(new Point(6,11), new Point(1,12))); // 1 (8, 3)
+        //print(addPoints(new Point(6,11), new Point(8,3))); //  2 (2,7)
+//        print(addPoints(new Point(6,11), new Point(2,7))); //  3 (10,2)
+        //print(addPoints(new Point(6,11), new Point(10,2))); // 4 (5,8)
+//        print(addPoints(new Point(6,11), new Point(5,8))); //  5 (15,13)
+        //print(addPoints(new Point(6,11), new Point(15,13))); //6 (12,16)
+//        print(addPoints(new Point(6,11), new Point(12,16))); //7 (3,0)
+
+        //Point x = multiplyPoint(8, new Point(6,11)); // 6,11 + 6,11 fails
+        //if (x.equals(new Point(12, 16))) {
+        //    print("OK!");
+        //} else {
+        //    print("FAIL: 8 x (6, 11) = (12, 16) != " + x.toString());
+       // }
+
+
+
+//        print(new Point(1, 1).equals(new Point(1, 1)));
+  //      print(new Point(1, 2).equals(new Point(1, 1)));
         // ecdhExample();
         //
-        int x = 1;
-        int y = 2;
-        double z = (double) x / y;
-        int z1 = x % y;
-        print(z1);
+//        int x = 4935;
+  //      int y = 17;
+//        double z = (double) x / y;
+    //    int z1 = x % y;
+      //  print(z1);
+      
+        List<List<Long>> pks = new ArrayList<>();
+        for (long i = 1; i <= p; i++) {
+            for (long j = 1; j <= p; j++) {
+                List<Long> pair = new ArrayList<>();
+                pair.add(i);
+                pair.add(j);
+                pks.add(pair);
+            }
+        }
+
+        for (List<Long> pair : pks) {
+            print("---- TEST Alice private key: " + pair.get(0) + ", Bob private key: " + pair.get(1));
+            ecdhExample(pair.get(0), pair.get(1));
+        }
     }
 
 
 
-    private static void ecdhExample() {
+    private static void ecdhExample(Long givenAlicePK, Long givenBobPK) {
         // Alice 
 
         // validation...
 
-        int alicePrivateKey = randomInt(1, orderG);
+        long alicePrivateKey = givenAlicePK != null ? givenAlicePK : (long) randomInt(1, orderG - 1);
+//        long alicePrivateKey = 8L;
+        print("Alice private key: "+ alicePrivateKey);
         Point alicePublicKey = multiplyPoint(alicePrivateKey, G);
+////        print("DEBUG: alicePubkey" + alicePublicKey.toString());
+
+        if (alicePublicKey == INFINITY) {
+            return;
+        }
         
         // Bob 
         // validation...
         
-        int bobPrivateKey = randomInt(1, orderG);
+        long bobPrivateKey = givenBobPK != null ? givenBobPK : (long) randomInt(1, orderG - 1);
+        //long bobPrivateKey = 10L;
+        print("Bob private key: "+ bobPrivateKey);
         Point bobPublicKey = multiplyPoint(bobPrivateKey, G);
+////        print("DEBUG: bobPubkey" + bobPublicKey.toString());
+        
+        if (bobPublicKey == INFINITY) {
+            print("INFINITY, aborting");
+            return;
+        }
 
         // Exchange
 
         // Alice
         Point aliceSecretPoint = multiplyPoint(alicePrivateKey, bobPublicKey);
+//        print("DEBUG: aliceSecretPoint: " + aliceSecretPoint.toString());
+        if (aliceSecretPoint == INFINITY) {
+            print("INFINITY, aborting");
+            return;
+        }
         String aliceSecret = kdf(aliceSecretPoint.x);
 
         // Bob
         Point bobSecretPoint = multiplyPoint(bobPrivateKey, alicePublicKey);
+//        print("DEBUG: bobSecretPoint: " + bobSecretPoint.toString());
+        if (bobSecretPoint == INFINITY) {
+            print("INFINITY, aborting");
+            return;
+        }
         String bobSecret = kdf(bobSecretPoint.x);
 
         // check
@@ -61,95 +122,147 @@ public class ECDHExample {
             throw new RuntimeException("Wymiana kluczy nie powiodła się. Alice(" + aliceSecret + ")!=Bob(" + bobSecret + ")");
         }
 
-    }
-// todo ints to longs
-    private static String kdf(int sharedPointX) {
-        return "";
+        print("Alice secret: " + aliceSecret);
+        print("Bob secret: " + bobSecret);
+
     }
 
-    private static Point multiplyPoint(int multiplier, Point point) {
-        if (point.equals(INFINITY)) {
+
+//    HKDF (HMAC-based KDF)
+  //  Recommended in RFC 5869.
+    private static String kdf(long sharedPointX) {
+        // todo
+        return "kdf-" + sharedPointX;
+    }
+
+    // fails for 8, (6,11)
+    private static Point multiplyPoint(long multiplier, Point point) {
+        if (point == INFINITY) {
             return INFINITY;
         }
 
-        Point result = point;
+        Point result = addPoints(point, point); // 2 x point
 
-        for (int i = 0; i < (multiplier - 1); i++) {
-            result = addPoints(result, point);
+        for (long i = 1; i <= (multiplier - 2); i++) {
+            Point tempResult = addPoints(result, point);
+
+            result = tempResult;
+            //print(result.toString());
         }
 
-        if (result.equals(INFINITY)) {
-            result = addPoints(result, point);
-        }
+//        if (result == INFINITY) {
+  //          result = addPoints(result, point);
+    ///    }
 
         return result;
     }
 
     private static Point addPoints(Point P, Point Q) {
-        if (P.equals(INFINITY)) {
+        if (P == INFINITY) {
             return Q;
         }
 
-        if (Q.equals(INFINITY)) {
+        if (Q == INFINITY) {
             return P;
         }
 
         // todo domainParams.p
-        int mod = p;
+        long mod = p;
         if (P.equals(Q)) {
+
+            Point negP = new Point(P);
+            negP.y = adjustToMod(negP.y * (-1));
+
+            if (negP.equals(P)) { // point of order 2, INF
+               return INFINITY;
+            }
+
             // todo domainParams.a
-            int m;
-            int mNumerator = adjustToMod(3 * P.x + a);
-            int mDenominator = adjustToMod(2 * P.y);
+            long m;
+            long mNumerator = adjustToMod(3 * (P.x * P.x) + a);
+//            print("DEBUG: mNumerator=" + mNumerator);
+            long mDenominator = adjustToMod(2 * P.y);
+//            print("DEBUG: mDenominator=" + mDenominator);
+
+            if (mDenominator == 0) {
+                throw new RuntimeException("DIVIDE BY 0");
+            }
 
             boolean needInverse = (mNumerator % mDenominator) != 0;
 
             if (needInverse) {
-                int mDenominatorInverse = calcModInverse(mDenominator);
+                long mDenominatorInverse = calcModInverse(mDenominator);
+//                print("DEBUG: mDenominatorInverse=" + mDenominatorInverse);
                 m = adjustToMod(mNumerator * mDenominatorInverse);
+//                print("DEBUG: m=" + m);
             } else {
                 m = adjustToMod(mNumerator / mDenominator);
             }
 
-            return calcPointsSum(m, P, Q);
+            Point sum = calcPointsSum(m, P, Q);
+//            print("DEBUG sum=" +  sum.toString());
+            return sum;
         } else {
             // punkty na tej samej prostej pionowej
             if (P.x == Q.x) {
                 return INFINITY;
             }
 
-            int m;
-            int mNumerator = adjustToMod(Q.y - P.y);
-            int mDenominator = adjustToMod(Q.x - P.x);
+            long m;
+            long mNumerator = adjustToMod(Q.y - P.y);
+//            print("DEBUG: mNumerator=" + mNumerator);
+            long mDenominator = adjustToMod(Q.x - P.x);
+//            print("DEBUG: mDenominator=" + mDenominator);
 
             boolean needInverse = (mNumerator % mDenominator) != 0;
 
             if (needInverse) {
-                int mDenominatorInverse = calcModInverse(mDenominator);
+                long mDenominatorInverse = calcModInverse(mDenominator);
+//                print("DEBUG: mDenominatorInverse=" + mDenominatorInverse);
                 m = adjustToMod(mNumerator * mDenominatorInverse);
+//                print("DEBUG: m=" + m);
             } else {
                 m = adjustToMod(mNumerator / mDenominator);
+//                print("DEBUG: m=" + m);
             }
 
-            return calcPointsSum(m, P, Q);
+            Point sum = calcPointsSum(m, P, Q);
+//            print("DEBUG sum=" + sum);
+            return sum;
         }
     }
 
-    private static int calcModInverse(int num) {
-// todo
+    private static long calcModInverse(long num) {
+        // num and p are coprime, p is always prime
+        // assert isPrime(p)
+        long totient = totientForPrime(p);
 
-        return 0;
+        long inverse = adjustToMod(num * num);
+        for (long i = 1; i <= (totient - 1) - 2; i++) {
+            inverse = adjustToMod(inverse * num);
+        }
+
+        return inverse;
     }
 
-    private static int adjustToMod(int num) {
-        // todo
-        return 0;
+    private static long totientForPrime(long num) {
+        return num - 1;
     }
 
-    private static Point calcPointsSum(int m, Point P, Point Q) {
+    private static long adjustToMod(long num) {
+        long result = num % p;
+
+        if (result < 0) {
+            result += p;
+        }
+
+        return result;
+    }
+
+    private static Point calcPointsSum(long m, Point P, Point Q) {
             Point R = new Point();
-            R.x = adjustToMod(m^2 - P.x - Q.x);
-            R.y = adjustToMod(m * (P.x - R.x) - P.y);
+            R.x = adjustToMod((long) (m * m - P.x - Q.x));
+            R.y = adjustToMod((long) (m * (P.x - R.x) - P.y));
 
             return R;
     }
