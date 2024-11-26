@@ -37,29 +37,24 @@ public class ECDHExample {
 	public void run() {
 		// Tutaj powinno nastąpić sprawdzenie poprawności parametrów domenowych
 
+		// Losowanie klucza prywatnego dA Alicji. Liczba całkowita z przedziału <1, n - 1>
 		long alicePrivateKey = alicePrivKeyGen.get(1L, DomainParameters.orderG - 1);
+
+		// Obliczenie klucza publicznego Qa Alicji dA x G
 		Point alicePublicKey = multiplyPoint(alicePrivateKey, DomainParameters.G);
 
-		if (alicePublicKey.isInfinity()) {
-			System.out.println("Niepomyślne parametry. " + 
-				"Klucz publiczny Alicji jest punktem w nieskończoności. Spróbuj ponownie");
-			return;
-		}
-
+		// Losowanie klucza prywatnego dB Boba. Liczba całkowita z przedziału <1, n - 1>
 		long bobPrivateKey = bobPrivKeyGen.get(1, DomainParameters.orderG - 1);
+
+		// Obliczenie klucza publicznego Qb Boba dB x G
 		Point bobPublicKey = multiplyPoint(bobPrivateKey, DomainParameters.G);
 
-		if (bobPublicKey.isInfinity()) {
-			System.out.println("Niepomyślne parametry. " + 
-				"Klucz publiczny Boba jest punktem w nieskończoności. Spróbuj ponownie");
-			return;
-		}
-
-		// Alicja otrzymuje klucz publiczny od Boba
-		// Przed użyciem powinna go sprawdzić (np. czy punkt ten leży na krzywej)
-
+		// Alicja otrzymuje klucz publiczny Qb od Boba
+		// Przed użyciem powinna go sprawdzić (np. czy punkt ten w ogóle leży na krzywej)
+		// Oblicza sekretny punkt S = dA x Qb
 		Point aliceSecretPoint = multiplyPoint(alicePrivateKey, bobPublicKey);
-		if (aliceSecretPoint.isInfinity()) {
+
+		if (aliceSecretPoint.isInfinity()) { // Możemy otrzymać punkt w nieskończoności. Powinniśmy wtedy rozpocząć komunikację na nowo
 			System.out.println("Niepomyślne parametry. " + 
 				"Sekretny punkt obliczony przez Alice jest punktem w nieskończoności. " + 
 				"Spróbuj ponownie");
@@ -72,11 +67,12 @@ public class ECDHExample {
 		String aliceSecret = kdf(aliceSecretPoint.x);
 
 
-		// Bob otrzymuje klucz publiczny od Alicji
+		// Bob otrzymuje klucz publiczny Qa od Alicji
 		// Przed użyciem powinien go sprawdzić (np. czy punkt ten leży na krzywej)
-
+		// Oblicza sekretny punkt S = dB x Qa
 		Point bobSecretPoint = multiplyPoint(bobPrivateKey, alicePublicKey);
-		if (bobSecretPoint.isInfinity()) {
+
+		if (bobSecretPoint.isInfinity()) {  // Możemy otrzymać punkt w nieskończoności. Powinniśmy wtedy rozpocząć komunikację na nowo
 			System.out.println("Niepomyślne parametry. " + 
 				"Sekretny punkt obliczony przez Boba jest punktem w nieskończoności. " + 
 				"Spróbuj ponownie");
